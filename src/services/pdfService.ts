@@ -1,159 +1,108 @@
 import { Quiz } from '@/types/quiz';
-import jsPDF from 'jspdf';
 
 export const generatePDF = async (
   quiz: Quiz,
   includeAnswers: boolean = false
 ): Promise<void> => {
-  const doc = new jsPDF();
   const optionLabels = ['A', 'B', 'C', 'D', 'E', 'F'];
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const margin = 20;
-  const contentWidth = pageWidth - 2 * margin;
-  let yPos = margin;
-
-  const addNewPageIfNeeded = (requiredSpace: number = 30) => {
-    if (yPos + requiredSpace > doc.internal.pageSize.getHeight() - margin) {
-      doc.addPage();
-      yPos = margin;
-    }
+  
+  // Clean LaTeX for PDF display
+  const cleanLatex = (text: string): string => {
+    return text.replace(/\$([^$]+)\$/g, '$1');
   };
 
-  // Header
-  doc.setFontSize(18);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(30, 27, 75); // Dark indigo
-  doc.text(quiz.quiz_metadata.title, pageWidth / 2, yPos, { align: 'center' });
-  yPos += 10;
+  // Generate HTML content
+  const questionsHTML = quiz.questions.map((q, index) => {
+    const optionsHTML = q.options.map((opt, i) => {
+      const isCorrect = i === q.correct_answer_index;
+      return `
+        <div style="display: flex; align-items: flex-start; gap: 12px; margin: 8px 0; padding: 8px; ${includeAnswers && isCorrect ? 'background-color: #dcfce7; border-radius: 4px;' : ''}">
+          <span style="font-weight: bold; min-width: 24px;">${optionLabels[i]}.</span>
+          <span>${cleanLatex(opt)}</span>
+          ${includeAnswers && isCorrect ? '<span style="color: #16a34a; margin-left: auto;">✓</span>' : ''}
+        </div>
+      `;
+    }).join('');
 
-  doc.setFontSize(11);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(99, 102, 241); // Indigo
-  doc.text(
-    `${quiz.quiz_metadata.subject} | ${quiz.quiz_metadata.academic_level} | ${quiz.quiz_metadata.language}`,
-    pageWidth / 2,
-    yPos,
-    { align: 'center' }
-  );
-  yPos += 6;
+    const answerSection = includeAnswers ? `
+      <div style="margin-top: 16px; padding: 12px; background-color: #f1f5f9; border-radius: 4px; border-left: 3px solid #6366f1;">
+        <strong style="color: #4338ca;">Answer: ${optionLabels[q.correct_answer_index]}</strong>
+        <p style="margin: 8px 0 0 0; font-size: 13px; color: #475569;">${cleanLatex(q.explanation)}</p>
+      </div>
+    ` : '';
 
-  doc.setFontSize(9);
-  doc.setTextColor(100, 116, 139); // Slate
-  doc.text(
-    `Total Questions: ${quiz.quiz_metadata.total_questions} | Duration: ${quiz.quiz_metadata.duration_minutes} minutes`,
-    pageWidth / 2,
-    yPos,
-    { align: 'center' }
-  );
-  yPos += 8;
+    return `
+      <div style="margin-bottom: 32px; page-break-inside: avoid;">
+        <div style="display: flex; align-items: flex-start; gap: 12px; margin-bottom: 12px;">
+          <span style="background-color: #4338ca; color: white; width: 28px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; flex-shrink: 0;">
+            ${index + 1}
+          </span>
+          <div>
+            <span style="background-color: #e0e7ff; color: #4338ca; padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-right: 8px;">
+              ${q.cognitive_level}
+            </span>
+            <span style="color: #64748b; font-size: 12px;">[${q.marks} marks]</span>
+          </div>
+        </div>
+        <p style="margin: 0 0 16px 40px; line-height: 1.6; font-size: 14px;">${cleanLatex(q.stem)}</p>
+        <div style="margin-left: 40px;">
+          ${optionsHTML}
+        </div>
+        ${answerSection}
+      </div>
+    `;
+  }).join('');
 
-  // Divider line
-  doc.setDrawColor(67, 56, 202);
-  doc.setLineWidth(0.5);
-  doc.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += 15;
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>${quiz.quiz_metadata.title}</title>
+      <style>
+        @media print {
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+        body {
+          font-family: Arial, sans-serif;
+          padding: 40px;
+          max-width: 800px;
+          margin: 0 auto;
+          color: #1e1b4b;
+        }
+      </style>
+    </head>
+    <body>
+      <div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #4338ca; padding-bottom: 20px;">
+        <h1 style="font-size: 24px; color: #1e1b4b; margin: 0 0 8px 0;">${quiz.quiz_metadata.title}</h1>
+        <p style="color: #6366f1; margin: 4px 0; font-size: 14px;">
+          ${quiz.quiz_metadata.subject} | ${quiz.quiz_metadata.academic_level} | ${quiz.quiz_metadata.language}
+        </p>
+        <p style="color: #64748b; margin: 4px 0; font-size: 12px;">
+          Total Questions: ${quiz.quiz_metadata.total_questions} | Duration: ${quiz.quiz_metadata.duration_minutes} minutes
+        </p>
+      </div>
+      ${questionsHTML}
+      <div style="text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 11px;">
+        Generated by Exam Prep Gen | ${new Date().toLocaleDateString()}
+      </div>
+    </body>
+    </html>
+  `;
 
-  // Questions
-  for (let i = 0; i < quiz.questions.length; i++) {
-    const q = quiz.questions[i];
+  // Open in new window for printing
+  const printWindow = window.open('', '_blank');
+  if (printWindow) {
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
     
-    addNewPageIfNeeded(60);
-
-    // Question number and cognitive level
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(67, 56, 202);
-    doc.text(`${i + 1}.`, margin, yPos);
+    // Wait for content to load, then trigger print
+    printWindow.onload = () => {
+      printWindow.print();
+    };
     
-    doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(99, 102, 241);
-    doc.text(`[${q.cognitive_level}]`, margin + 10, yPos);
-    
-    doc.setTextColor(100, 116, 139);
-    doc.text(`[${q.marks} marks]`, margin + 40, yPos);
-    yPos += 7;
-
-    // Question stem (clean LaTeX for PDF - simple text version)
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(30, 30, 30);
-    
-    const cleanStem = q.stem.replace(/\$([^$]+)\$/g, '$1');
-    const stemLines = doc.splitTextToSize(cleanStem, contentWidth - 10);
-    doc.text(stemLines, margin + 5, yPos);
-    yPos += stemLines.length * 5 + 5;
-
-    // Options
-    for (let j = 0; j < q.options.length; j++) {
-      addNewPageIfNeeded(10);
-      
-      const isCorrect = j === q.correct_answer_index;
-      const cleanOption = q.options[j].replace(/\$([^$]+)\$/g, '$1');
-      
-      if (includeAnswers && isCorrect) {
-        doc.setFillColor(220, 252, 231); // Light green
-        doc.rect(margin + 5, yPos - 4, contentWidth - 10, 7, 'F');
-      }
-      
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(50, 50, 50);
-      doc.text(`${optionLabels[j]}.`, margin + 8, yPos);
-      
-      doc.setFont('helvetica', 'normal');
-      const optionLines = doc.splitTextToSize(cleanOption, contentWidth - 25);
-      doc.text(optionLines, margin + 18, yPos);
-      
-      if (includeAnswers && isCorrect) {
-        doc.setTextColor(22, 163, 74);
-        doc.text('✓', pageWidth - margin - 10, yPos);
-      }
-      
-      yPos += optionLines.length * 5 + 3;
-    }
-
-    // Answer explanation (if including answers)
-    if (includeAnswers) {
-      addNewPageIfNeeded(25);
-      yPos += 3;
-      
-      doc.setFillColor(241, 245, 249); // Light slate
-      doc.rect(margin + 5, yPos - 4, contentWidth - 10, 20, 'F');
-      
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(67, 56, 202);
-      doc.text(`Answer: ${optionLabels[q.correct_answer_index]}`, margin + 8, yPos);
-      yPos += 5;
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(71, 85, 105);
-      const cleanExplanation = q.explanation.replace(/\$([^$]+)\$/g, '$1');
-      const explanationLines = doc.splitTextToSize(cleanExplanation, contentWidth - 20);
-      doc.text(explanationLines.slice(0, 2), margin + 8, yPos);
-      yPos += Math.min(explanationLines.length, 2) * 4 + 8;
-    }
-
-    yPos += 10;
+    // Fallback for browsers that don't fire onload
+    setTimeout(() => {
+      printWindow.print();
+    }, 500);
   }
-
-  // Footer
-  addNewPageIfNeeded(20);
-  doc.setDrawColor(226, 232, 240);
-  doc.setLineWidth(0.3);
-  doc.line(margin, yPos, pageWidth - margin, yPos);
-  yPos += 8;
-  
-  doc.setFontSize(8);
-  doc.setTextColor(148, 163, 184);
-  doc.text(
-    `Generated by Exam Prep Gen | ${new Date().toLocaleDateString()}`,
-    pageWidth / 2,
-    yPos,
-    { align: 'center' }
-  );
-
-  // Save
-  const filename = `${quiz.quiz_metadata.title.replace(/[^a-zA-Z0-9]/g, '_')}_${includeAnswers ? 'with_answers' : 'questions_only'}.pdf`;
-  doc.save(filename);
 };
