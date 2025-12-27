@@ -14,7 +14,7 @@ type AppState = 'upload' | 'quiz' | 'results';
 
 const Index = () => {
   const { toast } = useToast();
-  
+
   // Config state
   const [config, setConfig] = useState<ExamConfig>({
     academicLevel: 'Grade 10',
@@ -58,7 +58,7 @@ const Index = () => {
       console.error('Generation error:', error);
       toast({
         title: 'Generation Failed',
-        description: 'There was an error generating the exam. Please try again.',
+        description: error instanceof Error ? error.message : 'There was an error generating the exam. Please try again.',
         variant: 'destructive',
       });
     } finally {
@@ -155,10 +155,10 @@ const Index = () => {
                 <Sparkles className="h-4 w-4" />
                 <span className="text-sm font-medium">AI-Powered Exam Generation</span>
               </div>
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-              Transform Study Materials into
-              <span className="text-primary"> Exam Papers</span>
-            </h1>
+              <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
+                Transform Study Materials into
+                <span className="text-primary"> Exam Papers</span>
+              </h1>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 Upload your PDFs, images, or videos and let AI generate comprehensive exam papers
                 with math notation, diagrams, and instant grading.
@@ -224,7 +224,7 @@ const Index = () => {
             <QuizDisplay
               quiz={quiz}
               userAnswers={examResult.answers}
-              onSelectAnswer={() => {}}
+              onSelectAnswer={() => { }}
               showResults={true}
               examMode={false}
             />
