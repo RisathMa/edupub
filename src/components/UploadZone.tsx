@@ -77,10 +77,10 @@ export const UploadZone: React.FC<UploadZoneProps> = ({
         onDrop={handleDrop}
         className={`
           relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300 cursor-pointer
-          ${isDragging 
-            ? 'border-primary bg-accent scale-[1.02]' 
-            : file 
-              ? 'border-success bg-success/5' 
+          ${isDragging
+            ? 'border-primary bg-accent scale-[1.02]'
+            : file
+              ? 'border-success bg-success/5'
               : 'border-border hover:border-primary/50 hover:bg-accent/50'
           }
           ${(disabled || isProcessing) ? 'opacity-50 cursor-not-allowed' : ''}

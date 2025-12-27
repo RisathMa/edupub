@@ -48,12 +48,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
   return (
     <div
       className={`
-        bg-card border-2 rounded-xl p-6 transition-all duration-300
-        ${showResults 
-          ? isCorrect 
-            ? 'border-success bg-success/5' 
-            : isWrong 
-              ? 'border-destructive bg-destructive/5' 
+        bg-card border-2 rounded-xl p-4 md:p-6 transition-all duration-300
+        ${showResults
+          ? isCorrect
+            ? 'border-success bg-success/5'
+            : isWrong
+              ? 'border-destructive bg-destructive/5'
               : 'border-border'
           : 'border-border hover:border-primary/30'
         }
@@ -127,12 +127,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               disabled={!examMode || showResults}
               className={`
                 w-full flex items-start gap-3 p-4 rounded-lg border-2 text-left transition-all duration-200
-                ${showAsCorrect 
+                ${showAsCorrect
                   ? 'border-success bg-success/10 text-success'
-                  : showAsWrong 
+                  : showAsWrong
                     ? 'border-destructive bg-destructive/10 text-destructive'
-                    : isSelected 
-                      ? 'border-primary bg-primary/10' 
+                    : isSelected
+                      ? 'border-primary bg-primary/10'
                       : 'border-border hover:border-primary/50 hover:bg-accent/50'
                 }
                 ${(!examMode || showResults) ? 'cursor-default' : 'cursor-pointer'}
@@ -141,12 +141,12 @@ export const QuestionCard: React.FC<QuestionCardProps> = ({
               <span
                 className={`
                   flex-shrink-0 w-7 h-7 rounded-lg flex items-center justify-center font-semibold text-sm
-                  ${showAsCorrect 
+                  ${showAsCorrect
                     ? 'bg-success text-success-foreground'
-                    : showAsWrong 
+                    : showAsWrong
                       ? 'bg-destructive text-destructive-foreground'
-                      : isSelected 
-                        ? 'bg-primary text-primary-foreground' 
+                      : isSelected
+                        ? 'bg-primary text-primary-foreground'
                         : 'bg-secondary text-secondary-foreground'
                   }
                 `}
